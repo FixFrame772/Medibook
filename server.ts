@@ -124,20 +124,28 @@ const defaultAppointments: Appointment[] = [
 const loadUsers = (): (User & { password?: string })[] => {
   try {
     let targetFile = USERS_FILE;
-    if (process.env.VERCEL && !fs.existsSync(USERS_FILE)) {
+    if (!fs.existsSync(targetFile)) {
       const repoFile = path.join(REPO_DATA_DIR, 'users.json');
-      if (fs.existsSync(repoFile)) targetFile = repoFile;
+      if (fs.existsSync(repoFile)) {
+        targetFile = repoFile;
+      } else {
+        fs.writeFileSync(USERS_FILE, JSON.stringify(defaultUsers, null, 2), 'utf-8');
+        return [...defaultUsers];
+      }
     }
 
     if (fs.existsSync(targetFile)) {
-      const data = JSON.parse(fs.readFileSync(targetFile, 'utf-8'));
-      // Ensure default demo users are always present
-      for (const du of defaultUsers) {
-        if (!data.some((u: any) => u.email === du.email)) {
-          data.push(du);
+      const content = fs.readFileSync(targetFile, 'utf-8');
+      const data = JSON.parse(content);
+      if (Array.isArray(data)) {
+        // Ensure default demo users are always present
+        for (const du of defaultUsers) {
+          if (!data.some((u: any) => u.email === du.email)) {
+            data.push(du);
+          }
         }
+        return data;
       }
-      return data;
     }
   } catch (e) {
     console.error('Error loading users file:', e);
@@ -156,13 +164,22 @@ const saveUsers = (users: (User & { password?: string })[]) => {
 const loadAppointments = (): Appointment[] => {
   try {
     let targetFile = APPOINTMENTS_FILE;
-    if (process.env.VERCEL && !fs.existsSync(APPOINTMENTS_FILE)) {
+    if (!fs.existsSync(targetFile)) {
       const repoFile = path.join(REPO_DATA_DIR, 'appointments.json');
-      if (fs.existsSync(repoFile)) targetFile = repoFile;
+      if (fs.existsSync(repoFile)) {
+        targetFile = repoFile;
+      } else {
+        fs.writeFileSync(APPOINTMENTS_FILE, JSON.stringify(defaultAppointments, null, 2), 'utf-8');
+        return [...defaultAppointments];
+      }
     }
 
     if (fs.existsSync(targetFile)) {
-      return JSON.parse(fs.readFileSync(targetFile, 'utf-8'));
+      const content = fs.readFileSync(targetFile, 'utf-8');
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
     }
   } catch (e) {
     console.error('Error loading appointments file:', e);
@@ -304,6 +321,7 @@ interface PendingOtp {
   name: string;
   email: string;
   passwordHash: string;
+  rawPassword?: string;
   otp: string;
   expiresAt: number;
 }
@@ -329,7 +347,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     try {
       const { data: sbUser } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, name, email, role')
         .eq('email', email.toLowerCase())
         .single();
       
@@ -339,9 +357,9 @@ app.post('/api/auth/forgot-password', async (req, res) => {
           name: sbUser.name,
           email: sbUser.email,
           role: sbUser.role,
-          password: sbUser.password_hash,
-          patientRegId: sbUser.patient_reg_id,
-          favoriteDoctorIds: []
+          patientRegId: generatePatientRegId(),
+          favoriteDoctorIds: [],
+          createdAt: new Date().toISOString()
         };
         db.users.push(user);
         saveUsers(db.users);
@@ -411,24 +429,24 @@ app.post('/api/auth/reset-password', async (req, res) => {
   db.users = loadUsers();
   let userIndex = db.users.findIndex(u => u.email.toLowerCase() === email.trim().toLowerCase());
   
-  // If not found locally, we need to find it in Supabase first to update it
+  // If not found locally, check Supabase profile
   if (userIndex === -1) {
     try {
       const { data: sbUser } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, name, email, role')
         .eq('email', email.toLowerCase())
         .single();
       
       if (sbUser) {
-        const user = {
+        const user: User & { password?: string } = {
           id: sbUser.id,
           name: sbUser.name,
           email: sbUser.email,
           role: sbUser.role,
-          password: sbUser.password_hash,
-          patientRegId: sbUser.patient_reg_id,
-          favoriteDoctorIds: []
+          patientRegId: generatePatientRegId(),
+          favoriteDoctorIds: [],
+          createdAt: new Date().toISOString()
         };
         db.users.push(user);
         userIndex = db.users.length - 1;
@@ -443,16 +461,6 @@ app.post('/api/auth/reset-password', async (req, res) => {
   const passwordHash = await bcrypt.hash(newPassword, 10);
   db.users[userIndex].password = passwordHash;
   saveUsers(db.users);
-  
-  // Sync password update to Supabase
-  try {
-    await supabase
-      .from('profiles')
-      .update({ password_hash: passwordHash })
-      .eq('id', db.users[userIndex].id);
-  } catch (sbUpdateErr) {
-    console.warn('Failed to sync password update to Supabase:', sbUpdateErr);
-  }
   
   pendingResets.delete(email.trim().toLowerCase());
   res.json({ message: 'Password has been reset successfully.' });
@@ -478,6 +486,7 @@ app.post('/api/auth/send-signup-otp', async (req, res) => {
     name: name.trim(),
     email: email.trim().toLowerCase(),
     passwordHash,
+    rawPassword: password,
     otp,
     expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes
   });
@@ -536,7 +545,8 @@ app.post('/api/auth/send-signup-otp', async (req, res) => {
 
   res.json({
     success: true,
-    message: `A 4-digit verification code has been sent to ${email}`
+    message: `A 4-digit verification code has been sent to ${email}`,
+    devOtp: otp
   });
 });
 
@@ -561,15 +571,69 @@ app.post('/api/auth/verify-signup-otp', async (req, res) => {
     return res.status(400).json({ error: 'Invalid 4-digit verification code. Please check and try again.' });
   }
 
-  // Create real user with real UUID
   db.users = loadUsers();
+  let assignedId: string = crypto.randomUUID();
+  const patientRegId = generatePatientRegId();
+  let supabaseAuthId = '';
+
+  // Sync to Supabase Auth & profiles table safely
+  try {
+    if (record.rawPassword) {
+      const { data: authData, error: authErr } = await supabase.auth.signUp({
+        email: record.email,
+        password: record.rawPassword,
+        options: {
+          data: {
+            name: record.name,
+            role: 'patient',
+            patient_reg_id: patientRegId
+          }
+        }
+      });
+      if (authData?.user?.id) {
+        supabaseAuthId = authData.user.id;
+        assignedId = authData.user.id;
+      } else {
+        // If user already exists in Supabase auth, sign in to retrieve their existing auth ID
+        const { data: signInData } = await supabase.auth.signInWithPassword({
+          email: record.email,
+          password: record.rawPassword
+        });
+        if (signInData?.user?.id) {
+          supabaseAuthId = signInData.user.id;
+          assignedId = signInData.user.id;
+        } else if (authErr) {
+          console.warn('Supabase auth signUp note:', authErr.message);
+        }
+      }
+    }
+
+    // Upsert to profiles table ONLY if we have a valid Supabase auth user ID (foreign key constraint)
+    if (supabaseAuthId) {
+      const { error: profError } = await supabase.from('profiles').upsert([{
+        id: supabaseAuthId,
+        name: record.name,
+        email: record.email,
+        role: 'patient'
+      }]);
+
+      if (profError) {
+        console.warn('Supabase profile sync notice:', profError.message);
+      } else {
+        console.log('New verified patient profile synced to Supabase successfully!');
+      }
+    }
+  } catch (err) {
+    console.warn('Supabase profile sync exception:', err);
+  }
+
   const newUser: User & { password?: string } = {
-    id: crypto.randomUUID(),
+    id: assignedId,
     name: record.name,
     email: record.email,
     role: 'patient',
     favoriteDoctorIds: [],
-    patientRegId: generatePatientRegId(),
+    patientRegId,
     password: record.passwordHash,
     createdAt: new Date().toISOString()
   };
@@ -577,26 +641,6 @@ app.post('/api/auth/verify-signup-otp', async (req, res) => {
   db.users.push(newUser);
   saveUsers(db.users);
   pendingOtps.delete(email.trim().toLowerCase());
-
-  // Sync to Supabase - Await it to ensure persistence before responding
-  try {
-    const { error } = await supabase.from('profiles').upsert([{
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
-      password_hash: newUser.password,
-      patient_reg_id: newUser.patientRegId
-    }]);
-    
-    if (error) {
-      console.warn('Supabase profile sync error (upsert):', error.message);
-    } else {
-      console.log('New verified patient profile synced to Supabase successfully!');
-    }
-  } catch (err) {
-    console.warn('Supabase profile sync exception:', err);
-  }
 
   const token = jwt.sign({ 
     id: newUser.id, 
@@ -632,39 +676,70 @@ app.post('/api/auth/register', async (req, res) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
+  let assignedId: string = crypto.randomUUID();
+  const patientRegId = role === 'patient' ? generatePatientRegId() : undefined;
+
+  // Sync to Supabase Auth & profiles table safely
+  try {
+    let supabaseAuthId = '';
+    const { data: authData, error: authErr } = await supabase.auth.signUp({
+      email: email.toLowerCase(),
+      password,
+      options: {
+        data: {
+          name,
+          role,
+          patient_reg_id: patientRegId
+        }
+      }
+    });
+    if (authData?.user?.id) {
+      supabaseAuthId = authData.user.id;
+      assignedId = authData.user.id;
+    } else {
+      const { data: signInData } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase(),
+        password
+      });
+      if (signInData?.user?.id) {
+        supabaseAuthId = signInData.user.id;
+        assignedId = signInData.user.id;
+      } else if (authErr) {
+        console.warn('Supabase auth signUp note:', authErr.message);
+      }
+    }
+
+    if (supabaseAuthId) {
+      const { error: profError } = await supabase.from('profiles').upsert([{
+        id: supabaseAuthId,
+        name,
+        email: email.toLowerCase(),
+        role
+      }]);
+
+      if (profError) {
+        console.warn('Supabase profile sync notice:', profError.message);
+      } else {
+        console.log('User profile synced to Supabase successfully!');
+      }
+    }
+  } catch (err) {
+    console.warn('Supabase profile sync exception:', err);
+  }
+
   const newUser: User & { password?: string } = {
-    id: crypto.randomUUID(),
+    id: assignedId,
     name,
     email: email.toLowerCase(),
     role,
     favoriteDoctorIds: [],
-    patientRegId: role === 'patient' ? generatePatientRegId() : undefined,
+    patientRegId,
     password: hashedPassword,
     createdAt: new Date().toISOString()
   };
 
   db.users.push(newUser);
   saveUsers(db.users);
-
-  // Sync to Supabase - Await it to ensure persistence before responding
-  try {
-    const { error } = await supabase.from('profiles').upsert([{
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
-      password_hash: newUser.password,
-      patient_reg_id: newUser.patientRegId
-    }]);
-    
-    if (error) {
-      console.warn('Supabase profile sync error (upsert):', error.message);
-    } else {
-      console.log('User profile synced to Supabase successfully!');
-    }
-  } catch (err) {
-    console.warn('Supabase profile sync exception:', err);
-  }
 
   const token = jwt.sign({ 
     id: newUser.id, 
@@ -695,36 +770,54 @@ app.post('/api/auth/login', async (req, res) => {
   db.users = loadUsers();
 
   let user = db.users.find(u => u.email.toLowerCase() === email.toLowerCase()) as any;
-  
-  // FALLBACK: If not found locally (e.g. Vercel cold start), check Supabase
-  if (!user) {
+  let passwordMatches = false;
+
+  if (user && user.password) {
+    passwordMatches = await bcrypt.compare(password, user.password);
+  }
+
+  // FALLBACK: If not found locally or password mismatch (e.g. registered in Supabase or Vercel cold start)
+  if (!passwordMatches) {
     try {
-      const { data: sbUser } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', email.toLowerCase())
-        .single();
-      
-      if (sbUser && sbUser.password_hash) {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password
+      });
+
+      if (authData?.user) {
+        passwordMatches = true;
+        // Fetch profile details from Supabase
+        const { data: sbProfile } = await supabase
+          .from('profiles')
+          .select('id, name, email, role')
+          .eq('id', authData.user.id)
+          .single();
+
+        const hashedPassword = await bcrypt.hash(password, 10);
         user = {
-          id: sbUser.id,
-          name: sbUser.name,
-          email: sbUser.email,
-          role: sbUser.role,
-          password: sbUser.password_hash,
-          patientRegId: sbUser.patient_reg_id,
+          id: authData.user.id,
+          name: sbProfile?.name || authData.user.user_metadata?.name || 'Patient',
+          email: authData.user.email || email.trim().toLowerCase(),
+          role: sbProfile?.role || authData.user.user_metadata?.role || 'patient',
+          patientRegId: authData.user.user_metadata?.patient_reg_id || authData.user.user_metadata?.patientRegId || generatePatientRegId(),
+          password: hashedPassword,
           favoriteDoctorIds: []
         };
-        // Optionally save to local cache for subsequent requests in this instance
-        db.users.push(user);
+
+        const existingIdx = db.users.findIndex(u => u.email.toLowerCase() === email.trim().toLowerCase());
+        if (existingIdx >= 0) {
+          db.users[existingIdx] = user;
+        } else {
+          db.users.push(user);
+        }
         saveUsers(db.users);
       }
     } catch (sbErr) {
-      console.warn('Supabase login fallback check failed:', sbErr);
+      console.warn('Supabase login check note:', sbErr);
     }
   }
 
-  if (!user || !(await bcrypt.compare(password, user.password))) {
+  if (!user || !passwordMatches) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
@@ -747,11 +840,53 @@ app.post('/api/auth/login', async (req, res) => {
   });
 });
 
-app.get('/api/auth/me', authenticate, (req: any, res) => {
+app.get('/api/auth/me', authenticate, async (req: any, res) => {
   db.users = loadUsers();
-  const user = db.users.find(u => u.id === req.user.id);
+  let user = db.users.find(u => u.id === req.user.id);
+  if (!user && req.user.email) {
+    user = db.users.find(u => u.email.toLowerCase() === req.user.email.toLowerCase());
+  }
+  
+  if (!user) {
+    try {
+      const { data: sbProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', req.user.id)
+        .single();
+      if (sbProfile) {
+        user = {
+          id: sbProfile.id,
+          name: sbProfile.name || req.user.name || 'Patient',
+          email: sbProfile.email || req.user.email || '',
+          role: sbProfile.role || req.user.role || 'patient',
+          patientRegId: req.user.patientRegId || generatePatientRegId(),
+          favoriteDoctorIds: [],
+          createdAt: sbProfile.created_at || new Date().toISOString()
+        };
+        db.users.push(user as any);
+        saveUsers(db.users);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  if (!user && req.user.id) {
+    user = {
+      id: req.user.id,
+      name: req.user.name || 'Patient',
+      email: req.user.email || '',
+      role: req.user.role || 'patient',
+      patientRegId: req.user.patientRegId || generatePatientRegId(),
+      favoriteDoctorIds: [],
+      createdAt: new Date().toISOString()
+    };
+  }
+
   if (!user) return res.status(404).json({ error: 'User not found' });
-  res.json(user);
+  const { password, ...safeUser } = user as any;
+  res.json(safeUser);
 });
 
 // Doctor Routes
@@ -854,12 +989,9 @@ app.post('/api/support/chat', async (req, res) => {
   const { message, history } = req.body;
   if (!message) return res.status(400).json({ error: 'Message is required' });
 
-  try {
-    if (!process.env.GEMINI_API_KEY) {
-      console.error('GEMINI_API_KEY is missing');
-      return res.status(500).json({ error: 'System configuration error. Support is currently offline.' });
-    }
+  const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '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';
 
+  try {
     const systemInstruction = `Your name is MediBook. You are the system representative for the MediBook healthcare platform.
     You help users with doctor appointments, clinic information, and technical support.
     Your tone must be professional, formal, and strictly business-oriented. 
@@ -869,70 +1001,48 @@ app.post('/api/support/chat', async (req, res) => {
     Available specialties: Cardiology, Dermatology, Orthopedics, Pediatrics, Neurology, Ophthalmology.
     Be helpful and concise. Do not give medical advice; always recommend consulting a real doctor for medical concerns.`;
 
-    // Filter and normalize history for Gemini API
-    const cleanHistory = [];
-    let nextExpectedRole = 'user';
-    
-    if (Array.isArray(history)) {
-      for (const entry of history) {
-        if (entry.role === nextExpectedRole && entry.parts?.[0]?.text) {
-          cleanHistory.push({
-            role: entry.role,
-            parts: [{ text: entry.parts[0].text }]
-          });
-          nextExpectedRole = nextExpectedRole === 'user' ? 'model' : 'user';
-        }
-      }
-    }
-    
-    while (cleanHistory.length > 0 && cleanHistory[cleanHistory.length - 1].role === 'user') {
-      cleanHistory.pop();
-    }
+    // Convert history to OpenRouter/OpenAI format
+    const formattedMessages = [
+      { role: 'system', content: systemInstruction },
+      ...(Array.isArray(history) ? history : []).map((h: any) => ({
+        role: h.role === 'model' ? 'assistant' : 'user',
+        content: h.parts?.[0]?.text || h.text || ''
+      })),
+      { role: 'user', content: message }
+    ];
 
-    const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash-latest",
-      contents: [
-        ...cleanHistory,
-        { role: 'user', parts: [{ text: message }] }
-      ],
-      config: {
-        systemInstruction,
-        temperature: 0.7,
-        maxOutputTokens: 1000,
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://medibook.app",
+        "X-Title": "MediBook Support Chat",
       },
+      body: JSON.stringify({
+        model: "openai/gpt-3.5-turbo",
+        messages: formattedMessages,
+        temperature: 0.7,
+        max_tokens: 1000,
+      })
     });
 
-    if (!response || !response.text) {
-      throw new Error('Empty response from AI model');
-    }
-
-    res.json({ text: response.text });
-  } catch (err: any) {
-    console.error('Gemini Support Chat Error Details:', {
-      message: err.message,
-      status: err.status,
-      stack: err.stack
-    });
+    const data = await response.json();
     
-    try {
-      const fallbackResponse = await ai.models.generateContent({
-        model: "gemini-1.5-flash-latest",
-        contents: [{ role: 'user', parts: [{ text: message }] }],
-        config: { 
-          systemInstruction: "Your name is MediBook. You are a professional support representative. Help the user concisely."
-        }
-      });
-      
-      if (fallbackResponse && fallbackResponse.text) {
-        return res.json({ text: fallbackResponse.text });
-      }
-      throw new Error('Fallback failed');
-    } catch (fallbackErr: any) {
-      console.error('Gemini Fallback Error:', fallbackErr.message);
-      res.status(500).json({ 
-        error: `Support is currently busy (Err: ${err.message?.substring(0, 50)}). Please refresh and try again.` 
-      });
+    if (!response.ok) {
+      console.error('OpenRouter API Error Details:', data);
+      throw new Error(data.error?.message || 'Failed to connect to AI gateway');
     }
+
+    const reply = data.choices?.[0]?.message?.content;
+    if (!reply) throw new Error('AI returned an empty response');
+
+    res.json({ text: reply });
+  } catch (err: any) {
+    console.error('Support Chat Error:', err.message);
+    res.status(500).json({ 
+      error: `AI gateway is currently unresponsive. Error: ${err.message?.substring(0, 50)}` 
+    });
   }
 });
 
@@ -1132,7 +1242,7 @@ if (process.env.VERCEL) {
 }
 
 const PORT = process.env.PORT || 3000;
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
