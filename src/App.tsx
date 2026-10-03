@@ -12,6 +12,7 @@ import Contact from './pages/Contact.tsx';
 import About from './pages/About.tsx';
 import Privacy from './pages/Privacy.tsx';
 import HelpCenter from './pages/HelpCenter.tsx';
+import ForgotPassword from './pages/ForgotPassword.tsx';
 import ProtectedRoute from './components/ProtectedRoute.tsx';
 import ScrollToTop from './components/ScrollToTop.tsx';
 
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/doctors" element={<Doctors />} />
             <Route path="/doctors/:id" element={<DoctorProfile />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/about" element={<About />} />
             <Route path="/privacy" element={<Privacy />} />

@@ -281,6 +281,91 @@ interface PendingOtp {
 }
 const pendingOtps = new Map<string, PendingOtp>();
 
+interface PendingReset {
+  email: string;
+  otp: string;
+  expiresAt: number;
+}
+const pendingResets = new Map<string, PendingReset>();
+
+// Send 4-digit OTP to user's email for Forgot Password
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+
+  db.users = loadUsers();
+  const user = db.users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
+  
+  if (!user) {
+    // For security, don't reveal if user exists, but we can't send email if they don't
+    return res.status(404).json({ error: 'No account found with this email address.' });
+  }
+
+  const otp = Math.floor(1000 + Math.random() * 9000).toString();
+  pendingResets.set(email.trim().toLowerCase(), {
+    email: email.trim().toLowerCase(),
+    otp,
+    expiresAt: Date.now() + 10 * 60 * 1000
+  });
+
+  console.log(`[MediBook Reset Service] Reset OTP sent to ${email}: ${otp}`);
+
+  const smtpUser = process.env.SMTP_USER || 'agkkwa333@gmail.com';
+  const smtpPass = (process.env.SMTP_PASS || 'kxuzxulzupxyftxw').replace(/\s+/g, '');
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: Number(process.env.SMTP_PORT) || 587,
+      secure: false,
+      auth: { user: smtpUser, pass: smtpPass }
+    });
+
+    const simpleHtml = `<!DOCTYPE html><html><body style="font-family: sans-serif; line-height: 1.6; color: #1e293b; max-width: 520px; margin: 0 auto; padding: 20px;">
+      <p>Hello,</p>
+      <p>You requested to reset your MediBook password. Use the following verification code:</p>
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 24px; text-align: center; margin: 20px 0;">
+        <span style="font-size: 34px; font-weight: 700; letter-spacing: 8px; color: #1e293b; font-family: monospace;">${otp}</span>
+      </div>
+      <p style="font-size: 14px; color: #64748b;">This code will expire in 10 minutes. If you didn't request this, please ignore this email.</p>
+      <p style="font-size: 14px; color: #334155;">Thank you,<br><strong>MediBook Team</strong></p>
+    </body></html>`;
+
+    await transporter.sendMail({
+      from: `"MediBook" <${smtpUser}>`,
+      to: email.trim(),
+      subject: `${otp} is your password reset code`,
+      html: simpleHtml
+    });
+    res.json({ message: 'Reset code sent to your email.' });
+  } catch (err) {
+    console.error('SMTP error:', err);
+    res.status(500).json({ error: 'Failed to send reset code. Please try again later.' });
+  }
+});
+
+// Verify OTP and Reset Password
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+  if (!email || !otp || !newPassword) return res.status(400).json({ error: 'All fields are required' });
+
+  const pending = pendingResets.get(email.trim().toLowerCase());
+  if (!pending || pending.otp !== otp || Date.now() > pending.expiresAt) {
+    return res.status(400).json({ error: 'Invalid or expired reset code.' });
+  }
+
+  db.users = loadUsers();
+  const userIndex = db.users.findIndex(u => u.email.toLowerCase() === email.trim().toLowerCase());
+  if (userIndex === -1) return res.status(404).json({ error: 'User not found' });
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  db.users[userIndex].password = passwordHash;
+  saveUsers(db.users);
+  
+  pendingResets.delete(email.trim().toLowerCase());
+  res.json({ message: 'Password has been reset successfully.' });
+});
+
 // Send 4-digit OTP to user's email for Sign Up
 app.post('/api/auth/send-signup-otp', async (req, res) => {
   const { name, email, password } = req.body;

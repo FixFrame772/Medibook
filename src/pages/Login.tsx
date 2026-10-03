@@ -315,6 +315,13 @@ const Login = () => {
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   </div>
+                  {!isRegister && (
+                    <div className="flex justify-end mt-2">
+                      <Link to="/forgot-password" size="sm" className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors">
+                        Forgot Password?
+                      </Link>
+                    </div>
+                  )}
                 </div>
 
                 {/* Submit button with 4 dots loading animation */}
