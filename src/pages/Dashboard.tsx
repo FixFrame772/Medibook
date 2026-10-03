@@ -3,9 +3,9 @@ import { useAuth } from '../contexts/AuthContext.tsx';
 import { Appointment, Doctor } from '../types.ts';
 import { supabase } from '../lib/supabase.ts';
 import { normalizeAppointment, normalizeDoctor } from '../lib/normalizers.ts';
-import { Calendar, Clock, User as UserIcon, CheckCircle2, XCircle, Clock4, ChevronRight, MessageSquare, Heart } from 'lucide-react';
+import { Calendar, Clock, User as UserIcon, CheckCircle2, XCircle, Clock4, ChevronRight, MessageSquare, Heart, Mail, Phone, Printer, X } from 'lucide-react';
 import { formatDate, cn } from '../lib/utils.ts';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import DoctorCard from '../components/DoctorCard.tsx';
 
 const Dashboard = () => {
@@ -13,6 +13,7 @@ const Dashboard = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [favoriteDoctors, setFavoriteDoctors] = useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -237,7 +238,10 @@ const Dashboard = () => {
                             Cancel
                           </button>
                         )}
-                        <button className="p-2.5 bg-slate-50 text-slate-400 rounded-xl group-hover:bg-blue-50 group-hover:text-blue-600 transition-all">
+                        <button 
+                          onClick={() => setSelectedAppointment(appt)}
+                          className="p-2.5 bg-slate-50 text-slate-400 rounded-xl group-hover:bg-blue-50 group-hover:text-blue-600 transition-all"
+                        >
                           <ChevronRight className="h-5 w-5" />
                         </button>
                       </div>
@@ -284,6 +288,91 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Appointment Detail Modal (Replicated from Admin for consistency) */}
+      <AnimatePresence>
+        {selectedAppointment && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div>
+                  <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Booking Receipt</span>
+                  <h3 className="text-lg font-bold text-slate-900">Appointment Details</h3>
+                </div>
+                <button 
+                  onClick={() => setSelectedAppointment(null)}
+                  className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200 gap-4">
+                  <div className="flex-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest block mb-1">Appointment Reference ID</span>
+                    <span className="font-mono text-base font-bold text-slate-800 break-all leading-tight">
+                      {selectedAppointment.patientRegId || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="shrink-0">
+                    <span className={cn(
+                      "px-3 py-1 rounded-full text-[10px] font-bold border",
+                      getStatusStyle(selectedAppointment.status)
+                    )}>
+                      {selectedAppointment.status.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest block mb-1">Doctor</span>
+                    <span className="font-bold text-slate-900 text-sm block leading-tight">{selectedAppointment.doctorName}</span>
+                    <span className="text-xs text-blue-600 font-bold">{selectedAppointment.specialty}</span>
+                  </div>
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest block mb-1">Scheduled Time</span>
+                    <span className="font-bold text-slate-900 text-sm block leading-tight">{formatDate(selectedAppointment.date)}</span>
+                    <span className="text-xs text-slate-600 font-bold">{selectedAppointment.time}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Symptoms / Notes</span>
+                  <div className="text-sm text-slate-600 bg-slate-50 p-4 rounded-2xl border border-slate-100 min-h-[80px] leading-relaxed">
+                    {selectedAppointment.notes || 'No notes provided for this appointment.'}
+                  </div>
+                </div>
+
+                <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <button
+                    onClick={() => window.print()}
+                    className="w-full sm:w-auto px-5 py-3 border border-slate-200 text-slate-700 rounded-2xl text-xs font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2.5 shadow-sm"
+                  >
+                    <Printer className="h-4 w-4" />
+                    Print Ticket
+                  </button>
+
+                  {selectedAppointment.status === 'pending' && (
+                    <button
+                      onClick={() => { handleCancel(selectedAppointment.id); setSelectedAppointment(null); }}
+                      className="w-full sm:w-auto px-6 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-2xl text-xs font-bold transition-all"
+                    >
+                      Cancel Appointment
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

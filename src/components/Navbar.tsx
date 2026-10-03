@@ -11,6 +11,11 @@ const Navbar = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
+  // Hide Navbar completely on admin routes as requested
+  if (location.pathname.startsWith('/admin')) {
+    return null;
+  }
+
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Find Doctors', path: '/doctors' },

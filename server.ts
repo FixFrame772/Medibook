@@ -288,6 +288,16 @@ interface PendingReset {
 }
 const pendingResets = new Map<string, PendingReset>();
 
+// Helper to generate 10-digit alphanumeric patient ID (e.g., MB-A1B2C3D4)
+const generatePatientRegId = () => {
+  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let result = '';
+  for (let i = 0; i < 10; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
 // Send 4-digit OTP to user's email for Forgot Password
 app.post('/api/auth/forgot-password', async (req, res) => {
   const { email } = req.body;
@@ -477,6 +487,7 @@ app.post('/api/auth/verify-signup-otp', async (req, res) => {
     email: record.email,
     role: 'patient',
     favoriteDoctorIds: [],
+    patientRegId: generatePatientRegId(),
     password: record.passwordHash,
     createdAt: new Date().toISOString()
   };
@@ -491,7 +502,9 @@ app.post('/api/auth/verify-signup-otp', async (req, res) => {
       id: newUser.id,
       name: newUser.name,
       email: newUser.email,
-      role: newUser.role
+      role: newUser.role,
+      password_hash: newUser.password,
+      patient_reg_id: newUser.patientRegId
     }]).then(({ error }) => {
       if (error) console.warn('Supabase profile sync notice:', error.message);
       else console.log('New verified patient profile synced to Supabase successfully!');
@@ -500,7 +513,12 @@ app.post('/api/auth/verify-signup-otp', async (req, res) => {
     console.warn('Supabase profile sync skipped:', err);
   }
 
-  const token = jwt.sign({ id: newUser.id, role: newUser.role, email: newUser.email }, JWT_SECRET);
+  const token = jwt.sign({ 
+    id: newUser.id, 
+    role: newUser.role, 
+    email: newUser.email,
+    patientRegId: newUser.patientRegId
+  }, JWT_SECRET);
   res.json({
     success: true,
     token,
@@ -509,6 +527,7 @@ app.post('/api/auth/verify-signup-otp', async (req, res) => {
       name: newUser.name,
       email: newUser.email,
       role: newUser.role,
+      patientRegId: newUser.patientRegId,
       favoriteDoctorIds: newUser.favoriteDoctorIds
     }
   });
@@ -534,6 +553,7 @@ app.post('/api/auth/register', async (req, res) => {
     email: email.toLowerCase(),
     role,
     favoriteDoctorIds: [],
+    patientRegId: role === 'patient' ? generatePatientRegId() : undefined,
     password: hashedPassword,
     createdAt: new Date().toISOString()
   };
@@ -547,7 +567,9 @@ app.post('/api/auth/register', async (req, res) => {
       id: newUser.id,
       name: newUser.name,
       email: newUser.email,
-      role: newUser.role
+      role: newUser.role,
+      password_hash: newUser.password,
+      patient_reg_id: newUser.patientRegId
     }]).then(({ error }) => {
       if (error) console.warn('Supabase profile sync notice:', error.message);
       else console.log('User profile synced to Supabase successfully!');
@@ -556,7 +578,12 @@ app.post('/api/auth/register', async (req, res) => {
     console.warn('Supabase profile sync skipped:', err);
   }
 
-  const token = jwt.sign({ id: newUser.id, role: newUser.role, email: newUser.email }, JWT_SECRET);
+  const token = jwt.sign({ 
+    id: newUser.id, 
+    role: newUser.role, 
+    email: newUser.email,
+    patientRegId: newUser.patientRegId
+  }, JWT_SECRET);
   res.json({ 
     token, 
     user: { 
@@ -564,6 +591,7 @@ app.post('/api/auth/register', async (req, res) => {
       name: newUser.name, 
       email: newUser.email, 
       role: newUser.role, 
+      patientRegId: newUser.patientRegId,
       favoriteDoctorIds: newUser.favoriteDoctorIds 
     } 
   });
@@ -578,21 +606,56 @@ app.post('/api/auth/login', async (req, res) => {
   // Reload latest users from disk to ensure any newly registered user is found
   db.users = loadUsers();
 
-  const user = db.users.find(u => u.email.toLowerCase() === email.toLowerCase()) as any;
+  let user = db.users.find(u => u.email.toLowerCase() === email.toLowerCase()) as any;
+  
+  // FALLBACK: If not found locally (e.g. Vercel cold start), check Supabase
+  if (!user) {
+    try {
+      const { data: sbUser } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', email.toLowerCase())
+        .single();
+      
+      if (sbUser && sbUser.password_hash) {
+        user = {
+          id: sbUser.id,
+          name: sbUser.name,
+          email: sbUser.email,
+          role: sbUser.role,
+          password: sbUser.password_hash,
+          patientRegId: sbUser.patient_reg_id,
+          favoriteDoctorIds: []
+        };
+        // Optionally save to local cache for subsequent requests in this instance
+        db.users.push(user);
+        saveUsers(db.users);
+      }
+    } catch (sbErr) {
+      console.warn('Supabase login fallback check failed:', sbErr);
+    }
+  }
+
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
-  const token = jwt.sign({ id: user.id, role: user.role, email: user.email }, JWT_SECRET);
+  const token = jwt.sign({ 
+    id: user.id, 
+    role: user.role, 
+    email: user.email,
+    patientRegId: user.patientRegId
+  }, JWT_SECRET);
   res.json({ 
     token, 
-    user: { 
-      id: user.id, 
-      name: user.name, 
-      email: user.email, 
-      role: user.role, 
-      favoriteDoctorIds: user.favoriteDoctorIds || [] 
-    } 
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      patientRegId: user.patientRegId,
+      favoriteDoctorIds: user.favoriteDoctorIds || []
+    }
   });
 });
 
@@ -716,6 +779,7 @@ app.post('/api/appointments', authenticate, async (req: any, res) => {
   const newAppointment: Appointment = {
     id: crypto.randomUUID(),
     patientId: patientIdToUse,
+    patientRegId: req.user.patientRegId || (db.users.find(u => u.id === patientIdToUse)?.patientRegId) || generatePatientRegId(),
     doctorId,
     doctorName: doctor.name,
     specialty: doctor.specialty,

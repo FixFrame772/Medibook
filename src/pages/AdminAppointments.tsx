@@ -248,10 +248,13 @@ const AdminAppointments = () => {
                             <span className="block font-bold text-slate-900 text-sm">
                               {appt.patientEmail || 'Patient'}
                             </span>
-                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
+                            <div className="flex flex-col gap-0.5 mt-1">
+                              <span className="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md inline-block w-fit">
+                                ID: {appt.patientRegId || 'N/A'}
+                              </span>
                               {appt.patientPhone && (
-                                <span className="flex items-center gap-1">
-                                  <Phone className="h-3 w-3" /> {appt.patientPhone}
+                                <span className="flex items-center gap-1 text-[11px] text-slate-500">
+                                  <Phone className="h-2.5 w-2.5" /> {appt.patientPhone}
                                 </span>
                               )}
                             </div>
@@ -387,68 +390,72 @@ const AdminAppointments = () => {
               </div>
 
               <div className="p-6 space-y-6">
-                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                  <div>
-                    <span className="text-xs text-slate-400 font-medium block">Appointment Reference ID</span>
-                    <span className="font-mono text-sm font-bold text-slate-800">{selectedAppointment.id}</span>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200 gap-4">
+                  <div className="flex-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest block mb-1">Appointment Reference ID</span>
+                    <span className="font-mono text-base font-bold text-slate-800 break-all leading-tight">
+                      {selectedAppointment.patientRegId || 'N/A'}
+                    </span>
                   </div>
-                  <div>
+                  <div className="shrink-0">
                     {getStatusBadge(selectedAppointment.status)}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-slate-50 rounded-2xl">
-                    <span className="text-xs text-slate-400 font-medium block">Doctor</span>
-                    <span className="font-bold text-slate-900 text-sm">{selectedAppointment.doctorName}</span>
-                    <span className="text-xs text-blue-600 font-semibold">{selectedAppointment.specialty}</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest block mb-1">Doctor</span>
+                    <span className="font-bold text-slate-900 text-sm block leading-tight">{selectedAppointment.doctorName}</span>
+                    <span className="text-xs text-blue-600 font-bold">{selectedAppointment.specialty}</span>
                   </div>
-                  <div className="p-4 bg-slate-50 rounded-2xl">
-                    <span className="text-xs text-slate-400 font-medium block">Scheduled Time</span>
-                    <span className="font-bold text-slate-900 text-sm">{formatDate(selectedAppointment.date)}</span>
-                    <span className="text-xs text-slate-600 font-semibold">{selectedAppointment.time}</span>
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest block mb-1">Scheduled Time</span>
+                    <span className="font-bold text-slate-900 text-sm block leading-tight">{formatDate(selectedAppointment.date)}</span>
+                    <span className="text-xs text-slate-600 font-bold">{selectedAppointment.time}</span>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Patient Contact</span>
-                  <div className="space-y-2 text-sm text-slate-700">
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-slate-400" />
-                      <span>{selectedAppointment.patientEmail || 'Not specified'}</span>
+                <div className="space-y-4">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Patient Contact</span>
+                  <div className="space-y-3 text-sm text-slate-700">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 shadow-sm">
+                        <Mail className="h-4 w-4" />
+                      </div>
+                      <span className="font-medium text-slate-600">{selectedAppointment.patientEmail || 'Not specified'}</span>
                     </div>
                     {selectedAppointment.patientPhone && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-slate-400" />
-                        <span>{selectedAppointment.patientPhone}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 shadow-sm">
+                          <Phone className="h-4 w-4" />
+                        </div>
+                        <span className="font-medium text-slate-600">{selectedAppointment.patientPhone}</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {selectedAppointment.notes && (
-                  <div>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Symptoms / Notes</span>
-                    <p className="text-sm text-slate-600 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                      {selectedAppointment.notes}
-                    </p>
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Symptoms / Notes</span>
+                  <div className="text-sm text-slate-600 bg-slate-50 p-4 rounded-2xl border border-slate-100 min-h-[80px] leading-relaxed">
+                    {selectedAppointment.notes || 'No notes provided for this appointment.'}
                   </div>
-                )}
+                </div>
 
-                <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+                <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
                   <button
                     onClick={() => window.print()}
-                    className="px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition-colors flex items-center gap-2"
+                    className="w-full sm:w-auto px-5 py-3 border border-slate-200 text-slate-700 rounded-2xl text-xs font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2.5 shadow-sm"
                   >
                     <Printer className="h-4 w-4" />
                     Print Ticket
                   </button>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
                     {selectedAppointment.status === 'pending' && (
                       <button
                         onClick={() => updateStatus(selectedAppointment.id, 'confirmed')}
-                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors"
+                        className="flex-1 sm:flex-none px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold transition-all shadow-md shadow-emerald-500/10"
                       >
                         Confirm Booking
                       </button>
@@ -456,7 +463,7 @@ const AdminAppointments = () => {
                     {selectedAppointment.status === 'confirmed' && (
                       <button
                         onClick={() => updateStatus(selectedAppointment.id, 'completed')}
-                        className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors"
+                        className="flex-1 sm:flex-none px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold transition-all shadow-md shadow-blue-500/10"
                       >
                         Mark Completed
                       </button>

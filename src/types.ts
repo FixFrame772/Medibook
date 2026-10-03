@@ -5,6 +5,7 @@ export interface User {
   email: string;
   role: 'patient' | 'admin';
   favoriteDoctorIds: string[];
+  patientRegId?: string; // 10-digit alphanumeric ID
   createdAt: string;
 }
 
@@ -24,6 +25,7 @@ export interface Doctor {
 export interface Appointment {
   id: string;
   patientId: string;
+  patientRegId?: string; // 10-digit alphanumeric ID
   doctorId: string;
   doctorName: string;
   specialty: string;

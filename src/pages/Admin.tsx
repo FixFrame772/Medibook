@@ -335,9 +335,16 @@ const Admin = () => {
                   ))
                 ) : filteredAppointments.slice(0, 5).map((appt) => (
                   <tr key={appt.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-8 py-4 font-bold text-slate-900 text-sm">
-                      {appt.patientEmail || 'Patient'}
-                      {appt.patientPhone && <span className="block text-xs font-normal text-slate-500">{appt.patientPhone}</span>}
+                    <td className="px-8 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-bold text-slate-900 text-sm">
+                          {appt.patientEmail || 'Patient'}
+                        </span>
+                        <span className="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md w-fit">
+                          ID: {appt.patientRegId || 'N/A'}
+                        </span>
+                        {appt.patientPhone && <span className="text-[11px] text-slate-500">{appt.patientPhone}</span>}
+                      </div>
                     </td>
                     <td className="px-8 py-4">
                       <span className="font-semibold text-slate-800 text-sm block">{appt.doctorName}</span>
