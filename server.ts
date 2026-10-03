@@ -22,8 +22,9 @@ const SUPABASE_URL = rawSupabaseUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/,
 const SUPABASE_ANON_KEY = (process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || 'sb_publishable_Pnq4IGoKLv6mCtstFR7GGA_tVGWxvJ0').trim();
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Data files persistence paths
-const DATA_DIR = path.join(__dirname, 'data');
+// Data files persistence paths - Use /tmp on Vercel for temporary write access
+const REPO_DATA_DIR = path.join(__dirname, 'data');
+const DATA_DIR = process.env.VERCEL ? path.join('/tmp', 'data') : REPO_DATA_DIR;
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const APPOINTMENTS_FILE = path.join(DATA_DIR, 'appointments.json');
 const DOCTORS_FILE = path.join(DATA_DIR, 'doctors.json');
@@ -94,8 +95,14 @@ const defaultAppointments: Appointment[] = [
 // Helper to load persistent data
 const loadUsers = (): (User & { password?: string })[] => {
   try {
-    if (fs.existsSync(USERS_FILE)) {
-      const data = JSON.parse(fs.readFileSync(USERS_FILE, 'utf-8'));
+    let targetFile = USERS_FILE;
+    if (process.env.VERCEL && !fs.existsSync(USERS_FILE)) {
+      const repoFile = path.join(REPO_DATA_DIR, 'users.json');
+      if (fs.existsSync(repoFile)) targetFile = repoFile;
+    }
+
+    if (fs.existsSync(targetFile)) {
+      const data = JSON.parse(fs.readFileSync(targetFile, 'utf-8'));
       // Ensure default demo users are always present
       for (const du of defaultUsers) {
         if (!data.some((u: any) => u.email === du.email)) {
@@ -120,8 +127,14 @@ const saveUsers = (users: (User & { password?: string })[]) => {
 
 const loadAppointments = (): Appointment[] => {
   try {
-    if (fs.existsSync(APPOINTMENTS_FILE)) {
-      return JSON.parse(fs.readFileSync(APPOINTMENTS_FILE, 'utf-8'));
+    let targetFile = APPOINTMENTS_FILE;
+    if (process.env.VERCEL && !fs.existsSync(APPOINTMENTS_FILE)) {
+      const repoFile = path.join(REPO_DATA_DIR, 'appointments.json');
+      if (fs.existsSync(repoFile)) targetFile = repoFile;
+    }
+
+    if (fs.existsSync(targetFile)) {
+      return JSON.parse(fs.readFileSync(targetFile, 'utf-8'));
     }
   } catch (e) {
     console.error('Error loading appointments file:', e);
@@ -142,7 +155,7 @@ const defaultDoctors: Doctor[] = [
     id: 'f6321824-82c4-4b72-bfe1-6466b19d7695', // Real Supabase UUID
     name: 'Dr. James Wilson',
     specialty: 'Cardiology',
-    photoUrl: '/src/assets/images/doctor_cardiology_1791003731426.jpg',
+    photoUrl: '/assets/images/doctor_cardiology_1791003731426.jpg',
     experience: 15,
     qualifications: ['MD - Cardiology', 'FACC'],
     fees: 150,
@@ -154,7 +167,7 @@ const defaultDoctors: Doctor[] = [
     id: '5c396bb6-9807-4552-beb2-79675ebf120e', // Real Supabase UUID
     name: 'Dr. Sarah Chen',
     specialty: 'Dermatology',
-    photoUrl: '/src/assets/images/doctor_dermatology_1791003744157.jpg',
+    photoUrl: '/assets/images/doctor_dermatology_1791003744157.jpg',
     experience: 10,
     qualifications: ['MD - Dermatology', 'Board Certified'],
     fees: 120,
@@ -166,7 +179,7 @@ const defaultDoctors: Doctor[] = [
     id: '6a1bfe06-c2a8-4afe-b6ee-1893c1fe2884', // Real Supabase UUID
     name: 'Dr. Michael Brown',
     specialty: 'General Medicine',
-    photoUrl: '/src/assets/images/doctor_general_1791003778534.jpg',
+    photoUrl: '/assets/images/doctor_general_1791003778534.jpg',
     experience: 20,
     qualifications: ['MD - Internal Medicine'],
     fees: 80,
@@ -178,7 +191,7 @@ const defaultDoctors: Doctor[] = [
     id: '33333333-3333-4333-a333-333333333333',
     name: 'Dr. Robert Miller',
     specialty: 'Pediatrics',
-    photoUrl: '/src/assets/images/doctor_pediatrics_1791003754715.jpg',
+    photoUrl: '/assets/images/doctor_pediatrics_1791003754715.jpg',
     experience: 12,
     qualifications: ['MD - Pediatrics', 'American Board of Pediatrics'],
     fees: 100,
@@ -190,7 +203,7 @@ const defaultDoctors: Doctor[] = [
     id: '44444444-4444-4444-a444-444444444444',
     name: 'Dr. Elena Rodriguez',
     specialty: 'Neurology',
-    photoUrl: '/src/assets/images/doctor_neurology_1791003767614.jpg',
+    photoUrl: '/assets/images/doctor_neurology_1791003767614.jpg',
     experience: 18,
     qualifications: ['MD - Neurology', 'PhD in Neurosciences'],
     fees: 200,
@@ -202,8 +215,14 @@ const defaultDoctors: Doctor[] = [
 
 const loadDoctors = (): Doctor[] => {
   try {
-    if (fs.existsSync(DOCTORS_FILE)) {
-      const data = JSON.parse(fs.readFileSync(DOCTORS_FILE, 'utf-8'));
+    let targetFile = DOCTORS_FILE;
+    if (process.env.VERCEL && !fs.existsSync(DOCTORS_FILE)) {
+      const repoFile = path.join(REPO_DATA_DIR, 'doctors.json');
+      if (fs.existsSync(repoFile)) targetFile = repoFile;
+    }
+
+    if (fs.existsSync(targetFile)) {
+      const data = JSON.parse(fs.readFileSync(targetFile, 'utf-8'));
       for (const dd of defaultDoctors) {
         if (!data.some((d: any) => d.id === dd.id || d.name === dd.name)) {
           data.push(dd);
@@ -539,7 +558,7 @@ app.post('/api/doctors', authenticate, async (req: any, res) => {
     id: crypto.randomUUID(),
     name,
     specialty,
-    photoUrl: photoUrl || '/src/assets/images/doctor_cardiology_1791003731426.jpg',
+    photoUrl: photoUrl || '/assets/images/doctor_cardiology_1791003731426.jpg',
     experience: Number(experience) || 5,
     qualifications: qualificationsList,
     fees: Number(fees) || 120,
@@ -767,9 +786,6 @@ if (process.env.NODE_ENV === 'production') {
     appType: 'custom',
   });
   app.use(vite.middlewares);
-  
-  // Also serve images in dev
-  app.use('/src/assets/images', express.static(path.join(__dirname, 'src/assets/images')));
 
   // For non-API routes in dev, serve index.html via Vite
   app.get('*', async (req, res, next) => {
@@ -785,7 +801,11 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;

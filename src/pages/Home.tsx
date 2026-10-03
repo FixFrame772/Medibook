@@ -93,7 +93,7 @@ const Home = () => {
             >
               <div className="relative rounded-3xl overflow-hidden shadow-2xl">
                 <img 
-                  src="/src/assets/images/hero_healthcare_1791003789329.jpg" 
+                  src="/assets/images/hero_healthcare_1791003789329.jpg" 
                   alt="Modern Healthcare Facility"
                   className="w-full h-full object-cover"
                 />
