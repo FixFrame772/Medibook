@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext.tsx';
 import { Appointment, Doctor } from '../types.ts';
 import { supabase } from '../lib/supabase.ts';
 import { normalizeAppointment, normalizeDoctor } from '../lib/normalizers.ts';
-import { Calendar, Clock, User as UserIcon, CheckCircle2, XCircle, Clock4, ChevronRight, MessageSquare, Heart, Mail, Phone, Printer, X } from 'lucide-react';
+import { Calendar, Clock, User as UserIcon, CheckCircle2, XCircle, Clock4, ChevronRight, MessageSquare, Heart, Mail, Phone, Printer, X, Headset } from 'lucide-react';
 import { formatDate, cn } from '../lib/utils.ts';
 import { motion, AnimatePresence } from 'motion/react';
 import DoctorCard from '../components/DoctorCard.tsx';
@@ -136,33 +136,60 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* User Summary Sidebar */}
           <aside className="lg:col-span-1 space-y-6">
-            <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm text-center">
-              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
-                <UserIcon className="h-10 w-10" />
+            <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm text-center">
+              <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-slate-200">
+                <UserIcon className="h-10 w-10 text-slate-400" />
               </div>
               <h2 className="text-xl font-bold text-slate-900 mb-1">{user?.name}</h2>
-              <p className="text-sm text-slate-400 mb-6">{user?.email}</p>
-              <div className="pt-6 border-t border-slate-100 flex justify-center gap-8">
-                <div className="text-center">
-                  <span className="block text-xl font-bold text-slate-900">{appointments.length}</span>
-                  <span className="text-xs text-slate-400 uppercase">Total</span>
+              <p className="text-xs text-slate-500 mb-6">{user?.email}</p>
+              
+              <div className="w-full pt-6 border-t border-slate-100 space-y-4">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-left">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Account Number</span>
+                  <span className="font-mono text-blue-700 font-bold tracking-wider">{user?.patientRegId || 'PENDING'}</span>
                 </div>
-                <div className="text-center">
-                  <span className="block text-xl font-bold text-slate-900">
-                    {appointments.filter(a => a.status === 'pending').length}
-                  </span>
-                  <span className="text-xs text-slate-400 uppercase">Pending</span>
+                
+                <div className="flex justify-between items-center px-2 pt-2">
+                  <div className="text-center">
+                    <span className="block text-xl font-bold text-slate-900">{appointments.length}</span>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tight">Total</span>
+                  </div>
+                  <div className="h-8 w-px bg-slate-200"></div>
+                  <div className="text-center">
+                    <span className="block text-xl font-bold text-slate-900">
+                      {appointments.filter(a => a.status === 'pending').length}
+                    </span>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tight">Active</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-blue-600 p-8 rounded-3xl shadow-xl text-white">
-              <h3 className="font-bold mb-4">Need Help?</h3>
-              <p className="text-blue-100 text-sm mb-6 leading-relaxed opacity-80">
-                Our support team is available 24/7 for any urgent queries or appointment rescheduling assistance.
+            <div className="bg-slate-800 p-6 rounded-2xl shadow-xl text-white">
+              <div className="flex items-center gap-3 mb-4">
+                <Headset className="h-5 w-5 text-blue-400" />
+                <h3 className="font-bold text-sm">System Support</h3>
+              </div>
+              <p className="text-slate-400 text-[11px] mb-6 leading-relaxed">
+                Contact our support desk for technical assistance or billing inquiries. Available 24/7.
               </p>
-              <button className="w-full py-3 bg-white text-blue-600 rounded-xl text-sm font-bold shadow-sm">
-                Contact Support
+              <button 
+                onClick={() => window.dispatchEvent(new CustomEvent('open-support-chat'))}
+                className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-blue-700 transition-colors shadow-lg"
+              >
+                Open Support Ticket
+              </button>
+            </div>
+            
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-3">
+              <h4 className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mb-2 px-1">Control Panel</h4>
+              <button className="w-full flex items-center justify-between p-2 text-xs text-slate-600 hover:text-blue-600 transition-colors border-b border-slate-50 pb-3">
+                <span className="flex items-center gap-2"><UserIcon className="h-3.5 w-3.5 text-slate-400" /> Account Profile</span>
+                <ChevronRight className="h-3 w-3" />
+              </button>
+              <button className="w-full flex items-center justify-between p-2 text-xs text-slate-600 hover:text-blue-600 transition-colors border-b border-slate-50 pb-3">
+                <span className="flex items-center gap-2"><Printer className="h-3.5 w-3.5 text-slate-400" /> Export Medical History</span>
+                <ChevronRight className="h-3 w-3" />
               </button>
             </div>
           </aside>
@@ -287,6 +314,22 @@ const Dashboard = () => {
             )}
           </div>
         )}
+
+        {/* System Info Footer - Classic PHP Style */}
+        <div className="mt-12 pt-6 border-t border-slate-200">
+          <div className="flex flex-wrap justify-between items-center gap-4 text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+            <div className="flex gap-4">
+              <span>System Version: v2.4.1-stable</span>
+              <span className="hidden sm:inline">•</span>
+              <span className="hidden sm:inline">Session ID: {Math.random().toString(36).substring(2, 10).toUpperCase()}</span>
+            </div>
+            <div className="flex gap-4 items-center">
+              <span className="flex items-center gap-1"><Shield className="h-3 w-3" /> Secure Node</span>
+              <span>•</span>
+              <span>Client Hash: {user?.id.slice(0, 8).toUpperCase()}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Appointment Detail Modal (Replicated from Admin for consistency) */}

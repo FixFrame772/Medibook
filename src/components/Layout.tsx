@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import Navbar from './Navbar.tsx';
+import SupportChat from './SupportChat.tsx';
 
 const Layout = () => {
   return (
@@ -9,6 +10,7 @@ const Layout = () => {
       <main className="flex-grow">
         <Outlet />
       </main>
+      <SupportChat />
       <footer className="bg-white border-t border-slate-200 py-12">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">

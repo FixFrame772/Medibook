@@ -70,7 +70,10 @@ const Contact = () => {
                 <p className="text-blue-100 text-sm opacity-80 mb-6">
                   Chat with our support team in real-time for immediate assistance.
                 </p>
-                <button className="w-full py-3 bg-white text-blue-600 rounded-xl font-bold text-sm">
+                <button 
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-support-chat'))}
+                  className="w-full py-3 bg-white text-blue-600 rounded-xl font-bold text-sm hover:bg-blue-50 transition-colors"
+                >
                   Start Live Chat
                 </button>
               </div>

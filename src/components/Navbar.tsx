@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.tsx';
-import { LogOut, User as UserIcon, Menu, X, Calendar, Search } from 'lucide-react';
+import { LogOut, User as UserIcon, Menu, X, Calendar, Search, Headset } from 'lucide-react';
 import { cn } from '../lib/utils.ts';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -26,6 +26,12 @@ const Navbar = () => {
       { name: 'Appointments', path: '/admin/appointments' }
     ] : []),
   ];
+
+  const handleOpenSupport = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.dispatchEvent(new CustomEvent('open-support-chat'));
+    setIsMobileMenuOpen(false);
+  };
 
   const handleLogout = () => {
     logout();
@@ -62,6 +68,13 @@ const Navbar = () => {
                 {link.name}
               </Link>
             ))}
+            <button 
+              onClick={handleOpenSupport}
+              className="whitespace-nowrap py-1 transition-colors hover:text-blue-600 shrink-0 inline-block text-slate-600 flex items-center gap-1.5"
+            >
+              <Headset className="h-3.5 w-3.5" />
+              Live Support
+            </button>
           </nav>
         </div>
 
@@ -71,10 +84,12 @@ const Navbar = () => {
             <div className="flex items-center gap-2.5 sm:gap-3">
               <Link
                 to={user.role === 'admin' ? '/admin' : '/dashboard'}
-                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200/80 text-xs font-bold text-slate-700 hover:text-blue-600 transition-colors whitespace-nowrap"
+                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 transition-all whitespace-nowrap shadow-sm"
               >
-                <UserIcon className="h-3.5 w-3.5 text-blue-600" />
-                <span className="max-w-[120px] truncate">{user.name}</span>
+                <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <span className="max-w-[120px] truncate uppercase tracking-tight">{user.name}</span>
               </Link>
               <button
                 onClick={handleLogout}
@@ -126,6 +141,13 @@ const Navbar = () => {
                   {link.name}
                 </Link>
               ))}
+              <button 
+                onClick={handleOpenSupport}
+                className="text-lg font-medium py-2 text-left text-slate-600 flex items-center gap-2"
+              >
+                <Headset className="h-5 w-5" />
+                Live Support
+              </button>
               {!user && (
                 <Link
                   to="/login"

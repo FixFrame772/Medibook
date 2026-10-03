@@ -7,11 +7,12 @@ import { ArrowRight, Shield, Clock, Users, Search, Heart, Baby, Sun, Brain, Stet
 import { motion } from 'motion/react';
 
 const specialtyIcons: Record<string, React.ReactNode> = {
-  'Heart': <Heart className="h-6 w-6" />,
-  'Sun': <Sun className="h-6 w-6" />,
-  'Baby': <Baby className="h-6 w-6" />,
-  'Brain': <Brain className="h-6 w-6" />,
-  'Stethoscope': <Stethoscope className="h-6 w-6" />
+  'Cardiology': <Heart className="h-5 w-5" />,
+  'Dermatology': <Sun className="h-5 w-5" />,
+  'Pediatrics': <Baby className="h-5 w-5" />,
+  'Neurology': <Brain className="h-5 w-5" />,
+  'Orthopedics': <Stethoscope className="h-5 w-5" />,
+  'General': <Stethoscope className="h-5 w-5" />
 };
 
 const Home = () => {
@@ -43,93 +44,65 @@ const Home = () => {
 
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
-      <section className="relative py-20 overflow-hidden bg-white">
+      {/* Hero Section - System Portal Style */}
+      <section className="relative py-24 bg-slate-50 border-b border-slate-200">
         <div className="container mx-auto px-6 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div 
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <span className="inline-block px-4 py-1.5 mb-6 text-xs font-bold tracking-wider text-blue-600 uppercase bg-blue-50 rounded-full">
-                Your Health, Our Priority
-              </span>
-              <h1 className="text-5xl lg:text-6xl font-bold text-slate-900 leading-tight mb-6">
-                Find and Book the <span className="text-blue-600">Best Doctors</span> Near You
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="order-2 lg:order-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 text-[10px] font-bold tracking-widest text-blue-700 uppercase bg-blue-100 border border-blue-200 rounded">
+                Official Healthcare Management System
+              </div>
+              <h1 className="text-4xl lg:text-5xl font-extrabold text-slate-900 leading-tight mb-6">
+                Online Doctor Appointment & <br/>
+                <span className="text-blue-600">Patient Care Portal</span>
               </h1>
-              <p className="text-xl text-slate-500 mb-10 max-w-lg leading-relaxed">
-                Connect with professional healthcare providers across all specialties. 
-                Experience a hassle-free appointment booking system.
+              <p className="text-lg text-slate-600 mb-10 max-w-lg leading-relaxed font-medium">
+                Access a professional network of verified healthcare specialists. 
+                Experience a secure, data-driven system for your medical needs.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link to="/doctors" className="px-8 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-200">
-                  Book an Appointment
+                <Link to="/doctors" className="px-10 py-4 bg-blue-600 text-white rounded font-bold uppercase tracking-wide hover:bg-blue-700 transition-all shadow-md">
+                  Search Specialists
                 </Link>
-                <a href="#how-it-works" className="px-8 py-4 bg-white text-slate-700 border border-slate-200 rounded-xl font-bold hover:bg-slate-50 transition-all">
-                  How it Works
-                </a>
+                <Link to="/login" className="px-10 py-4 bg-white text-slate-700 border border-slate-300 rounded font-bold uppercase tracking-wide hover:bg-slate-50 transition-all">
+                  Access Portal
+                </Link>
               </div>
-              <div className="mt-12 flex items-center gap-8 border-t border-slate-100 pt-8">
-                <div>
-                  <span className="block text-2xl font-bold text-slate-900">500+</span>
-                  <span className="text-sm text-slate-500">Expert Doctors</span>
-                </div>
-                <div>
-                  <span className="block text-2xl font-bold text-slate-900">10k+</span>
-                  <span className="text-sm text-slate-500">Happy Patients</span>
-                </div>
-                <div>
-                  <span className="block text-2xl font-bold text-slate-900">4.9/5</span>
-                  <span className="text-sm text-slate-500">Avg Rating</span>
-                </div>
-              </div>
-            </motion.div>
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="relative"
-            >
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+            </div>
+            
+            <div className="order-1 lg:order-2">
+              <div className="relative border-8 border-white shadow-2xl rounded-lg overflow-hidden bg-slate-200 aspect-[4/3]">
                 <img 
                   src="/assets/images/hero_healthcare_1791003789329.jpg" 
-                  alt="Modern Healthcare Facility"
+                  alt="Medical Facility"
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-2xl shadow-xl border border-slate-100 flex items-center gap-4 max-w-[240px]">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
-                  <Shield className="h-6 w-6" />
-                </div>
-                <div>
-                  <span className="block font-bold text-slate-900">Verified</span>
-                  <span className="text-xs text-slate-500">All doctors are certified professionals</span>
-                </div>
-              </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Specialties */}
-      <section className="py-20 bg-slate-50">
+      {/* Specialties - System Categories Style */}
+      <section className="py-24 bg-white border-b border-slate-200">
         <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">Search by Specialty</h2>
-            <p className="text-slate-500">Find the right specialist for your healthcare needs</p>
+          <div className="flex items-center gap-4 mb-16 justify-center md:justify-start">
+            <div className="h-px w-12 bg-blue-600"></div>
+            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">System Categories</h2>
+            <div className="hidden md:block h-px flex-1 bg-slate-100"></div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {specialties.map((spec) => (
               <Link 
                 key={spec.id}
                 to={`/doctors?specialty=${spec.name}`}
-                className="bg-white p-8 rounded-2xl border border-slate-100 text-center hover:shadow-md hover:border-blue-200 transition-all group"
+                className="bg-slate-50 p-6 border border-slate-200 text-left hover:bg-white hover:border-blue-600 hover:shadow-xl transition-all group"
               >
-                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-600 mb-4 mx-auto group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                  {specialtyIcons[spec.iconName] || <Stethoscope className="h-6 w-6" />}
+                <div className="w-10 h-10 bg-white border border-slate-200 rounded flex items-center justify-center text-slate-400 mb-6 group-hover:text-blue-600 group-hover:border-blue-100 transition-colors">
+                  {specialtyIcons[spec.name] || specialtyIcons['General']}
                 </div>
-                <h3 className="font-bold text-slate-900">{spec.name}</h3>
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">{spec.name}</h3>
+                <p className="text-[10px] text-slate-400 font-bold mt-2 uppercase">View Specialists</p>
               </Link>
             ))}
           </div>
@@ -164,31 +137,36 @@ const Home = () => {
         </div>
       </section>
 
-      {/* How it Works */}
-      <section id="how-it-works" className="py-20 bg-blue-600 text-white overflow-hidden relative">
+      {/* How it Works - System Workflow Style */}
+      <section id="how-it-works" className="py-24 bg-slate-900 text-white relative overflow-hidden">
         <div className="container mx-auto px-6 relative z-10">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">How it Works</h2>
-            <p className="text-blue-100 opacity-80">Book your appointment in 3 simple steps</p>
+          <div className="flex flex-col md:flex-row justify-between items-center mb-16 gap-6 text-center md:text-left">
+            <div>
+              <h2 className="text-3xl font-black mb-2 uppercase tracking-tight">System Workflow</h2>
+              <p className="text-slate-400 text-xs font-mono uppercase tracking-widest">Formal Booking Integration Protocol</p>
+            </div>
+            <div className="hidden md:block h-px flex-1 bg-slate-800 mx-10"></div>
+            <div className="text-[10px] font-black text-blue-500 uppercase tracking-widest border border-blue-500/30 px-4 py-2 rounded">
+              Verified Pipeline
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { icon: <Search />, title: 'Find your doctor', desc: 'Search from our extensive list of verified specialists by specialty or location.' },
-              { icon: <Calendar />, title: 'Choose a slot', desc: 'Pick a date and time that works best for your schedule from the doctor\'s availability.' },
-              { icon: <Shield />, title: 'Get Confirmed', desc: 'Receive an instant confirmation of your booking and a reminder before your appointment.' }
+              { icon: <Search />, title: '1. DATABASE QUERY', desc: 'Execute a comprehensive search through our verified specialist registry by clinical field or region.' },
+              { icon: <Calendar />, title: '2. SLOT ALLOCATION', desc: 'Secure a validated timestamp within the system grid that aligns with the current specialist availability.' },
+              { icon: <Shield />, title: '3. VERIFY & COMMIT', desc: 'System-wide validation of booking request with immediate generation of digital medical appointment credentials.' }
             ].map((step, idx) => (
-              <div key={idx} className="text-center">
-                <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-3xl flex items-center justify-center mb-6 mx-auto border border-white/20">
-                  {React.cloneElement(step.icon as React.ReactElement<any>, { className: 'h-8 w-8' })}
+              <div key={idx} className="bg-slate-800/40 border border-slate-800 p-8 rounded hover:bg-slate-800 transition-colors">
+                <div className="w-10 h-10 bg-blue-600 rounded flex items-center justify-center mb-8 text-white shadow-lg shadow-blue-900/40">
+                  {React.cloneElement(step.icon as React.ReactElement<any>, { className: 'h-5 w-5' })}
                 </div>
-                <h3 className="text-xl font-bold mb-4">{step.title}</h3>
-                <p className="text-blue-100 opacity-80 leading-relaxed">{step.desc}</p>
+                <h3 className="text-sm font-black mb-4 uppercase tracking-widest text-white">{step.title}</h3>
+                <p className="text-slate-400 text-[11px] leading-relaxed font-bold uppercase tracking-tight">{step.desc}</p>
               </div>
             ))}
           </div>
         </div>
-        <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-96 h-96 bg-blue-400 rounded-full blur-3xl"></div>
       </section>
     </div>
   );

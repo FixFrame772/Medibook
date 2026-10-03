@@ -1,110 +1,77 @@
 import React from 'react';
-import { Users, Shield, Heart, Award, CheckCircle2 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Users, Shield, Heart, Award, CheckCircle2, Activity, Database, Lock } from 'lucide-react';
 
 const About = () => {
   return (
-    <div className="flex flex-col">
-      {/* Vision Section */}
-      <section className="py-24 bg-white">
+    <div className="flex flex-col bg-slate-50">
+      {/* Vision Section - Formal Header */}
+      <section className="py-24 bg-white border-b border-slate-200">
         <div className="container mx-auto px-6 text-center max-w-4xl">
-          <span className="text-blue-600 font-bold tracking-widest uppercase text-xs mb-4 inline-block">Our Story</span>
-          <h1 className="text-5xl font-bold text-slate-900 mb-8 leading-tight">
-            We're on a Mission to Make <span className="text-blue-600">Healthcare Accessible</span> to Everyone
+          <div className="inline-block px-3 py-1 mb-6 text-[10px] font-bold tracking-widest text-blue-700 uppercase bg-blue-100 border border-blue-200 rounded">
+            Organizational Overview
+          </div>
+          <h1 className="text-4xl lg:text-5xl font-black text-slate-900 mb-8 leading-tight uppercase tracking-tight">
+            Advancing Healthcare <span className="text-blue-600">Through Technology</span>
           </h1>
-          <p className="text-xl text-slate-500 leading-relaxed mb-12">
-            Founded in 2026, MediBook was born out of a simple idea: that finding the right doctor shouldn't be a struggle. We've built a platform that connects patients with world-class medical professionals seamlessly.
+          <p className="text-lg text-slate-600 leading-relaxed mb-12 font-medium">
+            Established in 2026, MediBook serves as a centralized node for healthcare accessibility. 
+            Our system architecture is designed to bridge the gap between world-class medical 
+            specialists and patients requiring immediate professional care.
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 border-t border-slate-100 pt-12">
             <div>
-              <span className="block text-3xl font-bold text-slate-900">2026</span>
-              <span className="text-sm text-slate-500">Established</span>
+              <span className="block text-3xl font-black text-slate-900">2026</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Est. Year</span>
             </div>
             <div>
-              <span className="block text-3xl font-bold text-slate-900">500+</span>
-              <span className="text-sm text-slate-500">Doctors</span>
+              <span className="block text-3xl font-black text-slate-900">500+</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Verified Staff</span>
             </div>
             <div>
-              <span className="block text-3xl font-bold text-slate-900">10k+</span>
-              <span className="text-sm text-slate-500">Patients</span>
+              <span className="block text-3xl font-black text-slate-900">10k+</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Global Clients</span>
             </div>
             <div>
-              <span className="block text-3xl font-bold text-slate-900">4.9/5</span>
-              <span className="text-sm text-slate-500">Rating</span>
+              <span className="block text-3xl font-black text-slate-900">100%</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Security</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Values Section */}
+      {/* Values Section - Traditional Grid */}
       <section className="py-24 bg-slate-50">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">Our Core Values</h2>
-            <p className="text-slate-500">The principles that guide everything we do.</p>
+            <h2 className="text-3xl font-black text-slate-900 mb-4 uppercase tracking-tighter">System Core Values</h2>
+            <p className="text-slate-500 font-mono text-sm">Operational Principles & Standards</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { 
-                icon: <Shield className="h-8 w-8 text-blue-600" />, 
-                title: 'Patient Trust', 
-                desc: 'Your health data is protected with the highest security standards. Trust is the foundation of our platform.' 
+                icon: <Lock className="h-6 w-6 text-blue-600" />, 
+                title: 'DATA PRIVACY', 
+                desc: 'All patient records are encrypted via AES-256 standards, ensuring absolute confidentiality and trust.' 
               },
               { 
-                icon: <Award className="h-8 w-8 text-emerald-600" />, 
-                title: 'Quality Care', 
-                desc: 'We only partner with board-certified professionals who are leaders in their respective fields.' 
+                icon: <Database className="h-6 w-6 text-emerald-600" />, 
+                title: 'SYSTEM INTEGRITY', 
+                desc: 'We partner exclusively with board-certified professionals verified through a rigorous multi-stage audit.' 
               },
               { 
-                icon: <Heart className="h-8 w-8 text-purple-600" />, 
-                title: 'Accessibility', 
-                desc: 'We believe everyone deserves access to top-tier healthcare regardless of location or background.' 
+                icon: <Activity className="h-6 w-6 text-blue-600" />, 
+                title: 'OPERATIONAL EXCELLENCE', 
+                desc: 'Optimized scheduling algorithms ensure minimal latency between appointment request and confirmation.' 
               }
             ].map((value, i) => (
-              <div key={i} className="bg-white p-10 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-6">
+              <div key={i} className="bg-white p-10 border border-slate-200 shadow-sm hover:border-blue-300 transition-colors">
+                <div className="w-12 h-12 bg-slate-50 border border-slate-200 rounded flex items-center justify-center mb-6">
                   {value.icon}
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-4">{value.title}</h3>
-                <p className="text-slate-500 leading-relaxed">{value.desc}</p>
+                <h3 className="text-sm font-black text-slate-900 mb-4 uppercase tracking-widest">{value.title}</h3>
+                <p className="text-xs text-slate-500 leading-relaxed font-medium uppercase tracking-tight">{value.desc}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Why Choose Us */}
-      <section className="py-24 bg-white">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-8">
-              <h2 className="text-4xl font-bold text-slate-900 leading-tight">Why Patients Choose <span className="text-blue-600">MediBook</span></h2>
-              <div className="space-y-6">
-                {[
-                  'Instant booking with real-time availability',
-                  'Verified board-certified medical specialists',
-                  'Secure digital medical appointment slips',
-                  'Patient-centric platform design',
-                  '24/7 dedicated support team'
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className="w-6 h-6 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0">
-                      <CheckCircle2 className="h-4 w-4" />
-                    </div>
-                    <span className="text-slate-700 font-medium">{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="relative">
-              <div className="rounded-3xl overflow-hidden shadow-2xl">
-                <img 
-                  src="/src/assets/images/hero_healthcare_1791003789329.jpg" 
-                  alt="Our Team" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
           </div>
         </div>
       </section>

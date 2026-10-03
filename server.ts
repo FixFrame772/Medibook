@@ -7,9 +7,20 @@ import fs from 'fs';
 import nodemailer from 'nodemailer';
 import { createClient } from '@supabase/supabase-js';
 import { Doctor, User, Appointment, Specialty } from './src/types.ts';
+import { generatePatientRegId } from './src/lib/id-generator.ts';
+import { GoogleGenAI } from "@google/genai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY || '',
+  httpOptions: {
+    headers: {
+      'User-Agent': 'aistudio-build',
+    }
+  }
+});
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
@@ -21,6 +32,20 @@ const rawSupabaseUrl = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_UR
 const SUPABASE_URL = rawSupabaseUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
 const SUPABASE_ANON_KEY = (process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || 'sb_publishable_Pnq4IGoKLv6mCtstFR7GGA_tVGWxvJ0').trim();
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Test database connection on startup
+(async () => {
+  try {
+    const { data, error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
+    if (error) {
+      console.warn('[MediBook DB] Supabase connection warning (profiles table might not exist):', error.message);
+    } else {
+      console.log('[MediBook DB] Supabase connected successfully to profiles table.');
+    }
+  } catch (err) {
+    console.warn('[MediBook DB] Supabase connection exception:', err);
+  }
+})();
 
 // Data files persistence paths - Use /tmp on Vercel for temporary write access
 const REPO_DATA_DIR = path.join(__dirname, 'data');
@@ -288,26 +313,42 @@ interface PendingReset {
 }
 const pendingResets = new Map<string, PendingReset>();
 
-// Helper to generate 10-digit alphanumeric patient ID (e.g., MB-A1B2C3D4)
-const generatePatientRegId = () => {
-  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  let result = '';
-  for (let i = 0; i < 10; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-};
-
 // Send 4-digit OTP to user's email for Forgot Password
 app.post('/api/auth/forgot-password', async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required' });
 
   db.users = loadUsers();
-  const user = db.users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
+  let user = db.users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
   
+  // FALLBACK: Check Supabase if not found locally
   if (!user) {
-    // For security, don't reveal if user exists, but we can't send email if they don't
+    try {
+      const { data: sbUser } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', email.toLowerCase())
+        .single();
+      
+      if (sbUser) {
+        user = {
+          id: sbUser.id,
+          name: sbUser.name,
+          email: sbUser.email,
+          role: sbUser.role,
+          password: sbUser.password_hash,
+          patientRegId: sbUser.patient_reg_id,
+          favoriteDoctorIds: []
+        };
+        db.users.push(user);
+        saveUsers(db.users);
+      }
+    } catch (sbErr) {
+      console.warn('Supabase forgot-password fallback check failed:', sbErr);
+    }
+  }
+
+  if (!user) {
     return res.status(404).json({ error: 'No account found with this email address.' });
   }
 
@@ -365,12 +406,50 @@ app.post('/api/auth/reset-password', async (req, res) => {
   }
 
   db.users = loadUsers();
-  const userIndex = db.users.findIndex(u => u.email.toLowerCase() === email.trim().toLowerCase());
+  let userIndex = db.users.findIndex(u => u.email.toLowerCase() === email.trim().toLowerCase());
+  
+  // If not found locally, we need to find it in Supabase first to update it
+  if (userIndex === -1) {
+    try {
+      const { data: sbUser } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', email.toLowerCase())
+        .single();
+      
+      if (sbUser) {
+        const user = {
+          id: sbUser.id,
+          name: sbUser.name,
+          email: sbUser.email,
+          role: sbUser.role,
+          password: sbUser.password_hash,
+          patientRegId: sbUser.patient_reg_id,
+          favoriteDoctorIds: []
+        };
+        db.users.push(user);
+        userIndex = db.users.length - 1;
+      }
+    } catch (sbErr) {
+      console.warn('Supabase reset-password fallback search failed:', sbErr);
+    }
+  }
+
   if (userIndex === -1) return res.status(404).json({ error: 'User not found' });
 
   const passwordHash = await bcrypt.hash(newPassword, 10);
   db.users[userIndex].password = passwordHash;
   saveUsers(db.users);
+  
+  // Sync password update to Supabase
+  try {
+    await supabase
+      .from('profiles')
+      .update({ password_hash: passwordHash })
+      .eq('id', db.users[userIndex].id);
+  } catch (sbUpdateErr) {
+    console.warn('Failed to sync password update to Supabase:', sbUpdateErr);
+  }
   
   pendingResets.delete(email.trim().toLowerCase());
   res.json({ message: 'Password has been reset successfully.' });
@@ -496,21 +575,24 @@ app.post('/api/auth/verify-signup-otp', async (req, res) => {
   saveUsers(db.users);
   pendingOtps.delete(email.trim().toLowerCase());
 
-  // Sync to Supabase in background
+  // Sync to Supabase - Await it to ensure persistence before responding
   try {
-    supabase.from('profiles').insert([{
+    const { error } = await supabase.from('profiles').upsert([{
       id: newUser.id,
       name: newUser.name,
       email: newUser.email,
       role: newUser.role,
       password_hash: newUser.password,
       patient_reg_id: newUser.patientRegId
-    }]).then(({ error }) => {
-      if (error) console.warn('Supabase profile sync notice:', error.message);
-      else console.log('New verified patient profile synced to Supabase successfully!');
-    });
+    }]);
+    
+    if (error) {
+      console.warn('Supabase profile sync error (upsert):', error.message);
+    } else {
+      console.log('New verified patient profile synced to Supabase successfully!');
+    }
   } catch (err) {
-    console.warn('Supabase profile sync skipped:', err);
+    console.warn('Supabase profile sync exception:', err);
   }
 
   const token = jwt.sign({ 
@@ -561,21 +643,24 @@ app.post('/api/auth/register', async (req, res) => {
   db.users.push(newUser);
   saveUsers(db.users);
 
-  // Sync to Supabase in background
+  // Sync to Supabase - Await it to ensure persistence before responding
   try {
-    supabase.from('profiles').insert([{
+    const { error } = await supabase.from('profiles').upsert([{
       id: newUser.id,
       name: newUser.name,
       email: newUser.email,
       role: newUser.role,
       password_hash: newUser.password,
       patient_reg_id: newUser.patientRegId
-    }]).then(({ error }) => {
-      if (error) console.warn('Supabase profile sync notice:', error.message);
-      else console.log('User profile synced to Supabase successfully!');
-    });
+    }]);
+    
+    if (error) {
+      console.warn('Supabase profile sync error (upsert):', error.message);
+    } else {
+      console.log('User profile synced to Supabase successfully!');
+    }
   } catch (err) {
-    console.warn('Supabase profile sync skipped:', err);
+    console.warn('Supabase profile sync exception:', err);
   }
 
   const token = jwt.sign({ 
@@ -759,6 +844,57 @@ app.delete('/api/doctors/:id', authenticate, (req: any, res) => {
 
 app.get('/api/specialties', (req, res) => {
   res.json(db.specialties);
+});
+
+// Support AI Chat Route
+app.post('/api/support/chat', async (req, res) => {
+  const { message, history } = req.body;
+  if (!message) return res.status(400).json({ error: 'Message is required' });
+
+  try {
+    const systemInstruction = `Your name is MediBook. You are the system representative for the MediBook healthcare platform.
+    You help users with doctor appointments, clinic information, and technical support.
+    Your tone must be professional, formal, and strictly business-oriented. 
+    DO NOT mention being an AI, an LLM, or an automated assistant. 
+    If asked who you are, state that you are MediBook, the official system representative.
+    Key features: Doctor search, appointment scheduling, patient dashboard, and admin panel.
+    Available specialties: Cardiology, Dermatology, Orthopedics, Pediatrics, Neurology, Ophthalmology.
+    Be helpful and concise. Do not give medical advice; always recommend consulting a real doctor for medical concerns.`;
+
+    // Filter history to ensure it starts with a user message and alternates correctly
+    // Gemini API requires the conversation history (contents) to start with 'user' role and alternate.
+    const cleanHistory = [];
+    let expecting = 'user';
+    for (const h of (history || [])) {
+      if (h.role === expecting) {
+        cleanHistory.push(h);
+        expecting = expecting === 'user' ? 'model' : 'user';
+      }
+    }
+    
+    // If history ends with 'user', remove the last entry to allow the current message to be the 'user' turn
+    if (cleanHistory.length > 0 && cleanHistory[cleanHistory.length - 1].role === 'user') {
+      cleanHistory.pop();
+    }
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.8-flash",
+      contents: [
+        ...cleanHistory,
+        { role: 'user', parts: [{ text: message }] }
+      ],
+      config: {
+        systemInstruction,
+        temperature: 0.7,
+        maxOutputTokens: 800,
+      },
+    });
+
+    res.json({ text: response.text });
+  } catch (err: any) {
+    console.error('Gemini Support Chat Error:', err);
+    res.status(500).json({ error: 'System connection error. Technical support is investigating.' });
+  }
 });
 
 // Appointment Routes

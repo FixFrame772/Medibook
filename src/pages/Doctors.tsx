@@ -82,9 +82,13 @@ const Doctors = () => {
   return (
     <div className="py-12 bg-slate-50 min-h-screen">
       <div className="container mx-auto px-6">
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Find Your Specialist</h1>
-          <p className="text-slate-500">Browse through our network of top-rated healthcare professionals</p>
+        <div className="mb-10 border-b border-slate-200 pb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Directory</span>
+          </div>
+          <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Verified Specialist Database</h1>
+          <p className="text-slate-500 font-medium">Browse through our professional network of board-certified healthcare specialists.</p>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
