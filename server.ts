@@ -9,6 +9,9 @@ import { createClient } from '@supabase/supabase-js';
 import { Doctor, User, Appointment, Specialty } from './src/types.ts';
 import { generatePatientRegId } from './src/lib/id-generator.ts';
 import { GoogleGenAI } from "@google/genai";
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -852,6 +855,11 @@ app.post('/api/support/chat', async (req, res) => {
   if (!message) return res.status(400).json({ error: 'Message is required' });
 
   try {
+    if (!process.env.GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY is missing');
+      return res.status(500).json({ error: 'System configuration error. Support is currently offline.' });
+    }
+
     const systemInstruction = `Your name is MediBook. You are the system representative for the MediBook healthcare platform.
     You help users with doctor appointments, clinic information, and technical support.
     Your tone must be professional, formal, and strictly business-oriented. 
@@ -862,7 +870,6 @@ app.post('/api/support/chat', async (req, res) => {
     Be helpful and concise. Do not give medical advice; always recommend consulting a real doctor for medical concerns.`;
 
     // Filter and normalize history for Gemini API
-    // Must start with 'user' and alternate: user -> model -> user -> ...
     const cleanHistory = [];
     let nextExpectedRole = 'user';
     
@@ -878,14 +885,12 @@ app.post('/api/support/chat', async (req, res) => {
       }
     }
     
-    // Ensure the history ends with 'model' so we can append the new 'user' message
-    // If it ends with 'user', remove it (it will be replaced by the current message)
     while (cleanHistory.length > 0 && cleanHistory[cleanHistory.length - 1].role === 'user') {
       cleanHistory.pop();
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash",
+      model: "gemini-1.5-flash-latest",
       contents: [
         ...cleanHistory,
         { role: 'user', parts: [{ text: message }] }
@@ -903,15 +908,18 @@ app.post('/api/support/chat', async (req, res) => {
 
     res.json({ text: response.text });
   } catch (err: any) {
-    console.error('Gemini Support Chat Error:', err);
+    console.error('Gemini Support Chat Error Details:', {
+      message: err.message,
+      status: err.status,
+      stack: err.stack
+    });
     
-    // Fallback logic for production stability
     try {
       const fallbackResponse = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+        model: "gemini-1.5-flash-latest",
         contents: [{ role: 'user', parts: [{ text: message }] }],
         config: { 
-          systemInstruction: "Your name is MediBook. You are a professional support representative for the MediBook platform. Help the user concisely."
+          systemInstruction: "Your name is MediBook. You are a professional support representative. Help the user concisely."
         }
       });
       
@@ -919,10 +927,10 @@ app.post('/api/support/chat', async (req, res) => {
         return res.json({ text: fallbackResponse.text });
       }
       throw new Error('Fallback failed');
-    } catch (fallbackErr) {
-      console.error('Gemini Fallback Error:', fallbackErr);
+    } catch (fallbackErr: any) {
+      console.error('Gemini Fallback Error:', fallbackErr.message);
       res.status(500).json({ 
-        error: 'The support system is temporarily unavailable. Our team has been notified. Please try again in a few minutes.' 
+        error: `Support is currently busy (Err: ${err.message?.substring(0, 50)}). Please refresh and try again.` 
       });
     }
   }
