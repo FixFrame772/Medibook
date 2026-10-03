@@ -861,24 +861,28 @@ app.post('/api/support/chat', async (req, res) => {
     Available specialties: Cardiology, Dermatology, Orthopedics, Pediatrics, Neurology, Ophthalmology.
     Be helpful and concise. Do not give medical advice; always recommend consulting a real doctor for medical concerns.`;
 
-    // Filter history to ensure it starts with a user message and alternates correctly
-    // Gemini API requires the conversation history (contents) to start with 'user' role and alternate.
+    // Filter and normalize history for Gemini API
+    // Must start with 'user' and alternate: user -> model -> user -> ...
     const cleanHistory = [];
-    let expecting = 'user';
-    for (const h of (history || [])) {
-      if (h.role === expecting) {
-        cleanHistory.push(h);
-        expecting = expecting === 'user' ? 'model' : 'user';
+    let nextExpectedRole = 'user';
+    
+    for (const entry of (history || [])) {
+      if (entry.role === nextExpectedRole && entry.parts?.[0]?.text) {
+        cleanHistory.push({
+          role: entry.role,
+          parts: [{ text: entry.parts[0].text }]
+        });
+        nextExpectedRole = nextExpectedRole === 'user' ? 'model' : 'user';
       }
     }
     
-    // If history ends with 'user', remove the last entry to allow the current message to be the 'user' turn
+    // Ensure the history ends with 'model' so we can append the new 'user' message
     if (cleanHistory.length > 0 && cleanHistory[cleanHistory.length - 1].role === 'user') {
       cleanHistory.pop();
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash",
+      model: "gemini-flash-latest",
       contents: [
         ...cleanHistory,
         { role: 'user', parts: [{ text: message }] }
@@ -886,14 +890,25 @@ app.post('/api/support/chat', async (req, res) => {
       config: {
         systemInstruction,
         temperature: 0.7,
-        maxOutputTokens: 800,
+        maxOutputTokens: 1000,
       },
     });
 
     res.json({ text: response.text });
   } catch (err: any) {
     console.error('Gemini Support Chat Error:', err);
-    res.status(500).json({ error: 'System connection error. Technical support is investigating.' });
+    // Final fallback to a very simple call if history logic fails
+    try {
+      const fallbackResponse = await ai.models.generateContent({
+        model: "gemini-flash-latest",
+        contents: [{ role: 'user', parts: [{ text: message }] }],
+        config: { systemInstruction: "You are MediBook, a helpful healthcare assistant." }
+      });
+      return res.json({ text: fallbackResponse.text });
+    } catch (fallbackErr) {
+      console.error('Gemini Fallback Error:', fallbackErr);
+      res.status(500).json({ error: 'The support system is experiencing heavy load. Please try again in a few moments.' });
+    }
   }
 });
 
