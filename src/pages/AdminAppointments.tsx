@@ -37,6 +37,10 @@ const AdminAppointments = () => {
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
   const fetchAppointments = async () => {
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       const res = await fetch('/api/appointments', {
@@ -108,6 +112,14 @@ const AdminAppointments = () => {
         return <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-bold border border-amber-200"><Clock className="h-3.5 w-3.5" /> Pending Review</span>;
     }
   };
+
+  if (isLoading && token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   if (!user || user.role !== 'admin') {
     return <AdminLoginGate onLoginSuccess={() => fetchAppointments()} />;

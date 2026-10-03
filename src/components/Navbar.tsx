@@ -19,9 +19,7 @@ const Navbar = () => {
     ...(user?.role === 'admin' ? [
       { name: 'Admin Overview', path: '/admin' },
       { name: 'Appointments', path: '/admin/appointments' }
-    ] : [
-      { name: 'Admin Panel', path: '/admin' }
-    ]),
+    ] : []),
   ];
 
   const handleLogout = () => {

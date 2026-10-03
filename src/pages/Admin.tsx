@@ -42,7 +42,10 @@ const Admin = () => {
   const [deletingDoctorId, setDeletingDoctorId] = useState<string | null>(null);
 
   const fetchData = async () => {
-    if (!token) return;
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
     try {
       const [statsRes, apptsRes, docsRes] = await Promise.all([
         fetch('/api/admin/stats', { headers: { 'Authorization': `Bearer ${token}` } }),
@@ -117,6 +120,14 @@ const Admin = () => {
   const filteredAppointments = appointments.filter(a => 
     activeTab === 'all' ? true : a.status === activeTab
   );
+
+  if (isLoading && token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   if (!user || user.role !== 'admin') {
     return <AdminLoginGate onLoginSuccess={() => fetchData()} />;
