@@ -59,13 +59,14 @@ const SupportChat = () => {
       });
 
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.text) {
         setMessages(prev => [...prev, { role: 'model', text: data.text }]);
       } else {
-        setMessages(prev => [...prev, { role: 'model', text: data.error || 'Our support system is currently busy. Please try again.' }]);
+        const errorMsg = data.error || 'System is momentarily busy. Please try sending your message again.';
+        setMessages(prev => [...prev, { role: 'model', text: errorMsg }]);
       }
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'model', text: 'Network error. Please check your connection.' }]);
+      setMessages(prev => [...prev, { role: 'model', text: 'Connection timed out. Please check your internet and try again.' }]);
     } finally {
       setIsLoading(false);
     }

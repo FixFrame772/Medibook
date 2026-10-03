@@ -866,23 +866,26 @@ app.post('/api/support/chat', async (req, res) => {
     const cleanHistory = [];
     let nextExpectedRole = 'user';
     
-    for (const entry of (history || [])) {
-      if (entry.role === nextExpectedRole && entry.parts?.[0]?.text) {
-        cleanHistory.push({
-          role: entry.role,
-          parts: [{ text: entry.parts[0].text }]
-        });
-        nextExpectedRole = nextExpectedRole === 'user' ? 'model' : 'user';
+    if (Array.isArray(history)) {
+      for (const entry of history) {
+        if (entry.role === nextExpectedRole && entry.parts?.[0]?.text) {
+          cleanHistory.push({
+            role: entry.role,
+            parts: [{ text: entry.parts[0].text }]
+          });
+          nextExpectedRole = nextExpectedRole === 'user' ? 'model' : 'user';
+        }
       }
     }
     
     // Ensure the history ends with 'model' so we can append the new 'user' message
-    if (cleanHistory.length > 0 && cleanHistory[cleanHistory.length - 1].role === 'user') {
+    // If it ends with 'user', remove it (it will be replaced by the current message)
+    while (cleanHistory.length > 0 && cleanHistory[cleanHistory.length - 1].role === 'user') {
       cleanHistory.pop();
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-3.8-flash",
       contents: [
         ...cleanHistory,
         { role: 'user', parts: [{ text: message }] }
@@ -894,20 +897,33 @@ app.post('/api/support/chat', async (req, res) => {
       },
     });
 
+    if (!response || !response.text) {
+      throw new Error('Empty response from AI model');
+    }
+
     res.json({ text: response.text });
   } catch (err: any) {
     console.error('Gemini Support Chat Error:', err);
-    // Final fallback to a very simple call if history logic fails
+    
+    // Fallback logic for production stability
     try {
       const fallbackResponse = await ai.models.generateContent({
-        model: "gemini-flash-latest",
+        model: "gemini-3.8-flash",
         contents: [{ role: 'user', parts: [{ text: message }] }],
-        config: { systemInstruction: "You are MediBook, a helpful healthcare assistant." }
+        config: { 
+          systemInstruction: "Your name is MediBook. You are a professional support representative for the MediBook platform. Help the user concisely."
+        }
       });
-      return res.json({ text: fallbackResponse.text });
+      
+      if (fallbackResponse && fallbackResponse.text) {
+        return res.json({ text: fallbackResponse.text });
+      }
+      throw new Error('Fallback failed');
     } catch (fallbackErr) {
       console.error('Gemini Fallback Error:', fallbackErr);
-      res.status(500).json({ error: 'The support system is experiencing heavy load. Please try again in a few moments.' });
+      res.status(500).json({ 
+        error: 'The support system is temporarily unavailable. Our team has been notified. Please try again in a few minutes.' 
+      });
     }
   }
 });
