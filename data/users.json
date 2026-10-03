@@ -1,0 +1,59 @@
+[
+  {
+    "id": "p1111111-1111-4111-a111-111111111111",
+    "name": "Sarah Jenkins",
+    "email": "patient@medibook.com",
+    "role": "patient",
+    "favoriteDoctorIds": [
+      "f6321824-82c4-4b72-bfe1-6466b19d7695",
+      "5c396bb6-9807-4552-beb2-79675ebf120e"
+    ],
+    "password": "$2b$10$ptE4/BWjskeyh9WAzmu9yuKNl5bAEFnoUhOXhGMJ00cQpBo9bb9nW",
+    "createdAt": "2026-10-03T06:01:06.045Z"
+  },
+  {
+    "id": "a2222222-2222-4222-a222-222222222222",
+    "name": "Clinic Administrator",
+    "email": "admin@medibook.com",
+    "role": "admin",
+    "favoriteDoctorIds": [],
+    "password": "$2b$10$Gbg4hUyJ8oiEd4tEStJLjeuHwaEa0xWbqp7UTXBeIosMf8rv79TD6",
+    "createdAt": "2026-10-03T06:01:06.046Z"
+  },
+  {
+    "id": "c3cec25f-1bee-4cc4-8049-4bf721e05c29",
+    "name": "Rahul Sharma",
+    "email": "persistent_user_1791007272434@gmail.com",
+    "role": "patient",
+    "favoriteDoctorIds": [],
+    "password": "$2b$10$QnPGUAGTdshRPgrCpwS9bOlFiWQikTlPaOI4AeZYpTlZ0kQel/mFe",
+    "createdAt": "2026-10-03T06:01:12.687Z"
+  },
+  {
+    "id": "a5b444a8-3122-4184-9ab3-a831e8b8b3a4",
+    "name": "Aarav Patel",
+    "email": "verified_patient_1791007317987@gmail.com",
+    "role": "patient",
+    "favoriteDoctorIds": [],
+    "password": "$2b$10$5ZIOG6Hq4AjsK8Z3UR1/4u7I5o7pOMixetT75vz/ZFjY.xc4tbqNm",
+    "createdAt": "2026-10-03T06:01:58.275Z"
+  },
+  {
+    "id": "574eac2f-ac98-4b0e-9c65-837eb83c7bd9",
+    "name": "Kavita Verma",
+    "email": "patient_id_verify_1791008597693@gmail.com",
+    "role": "patient",
+    "favoriteDoctorIds": [],
+    "password": "$2b$10$46Hyeb.Hen9JWyQ0jXyTAOjNZeHzXHKWRi/dOZO9TcgrBDm2z5rX6",
+    "createdAt": "2026-10-03T06:23:17.949Z"
+  },
+  {
+    "id": "1241f9bb-bda7-4205-8553-fc62e51a648c",
+    "name": "Rashid Ali",
+    "email": "otp_user_1791008788176@gmail.com",
+    "role": "patient",
+    "favoriteDoctorIds": [],
+    "password": "$2b$10$dHZpLlkuoVnRzPWsSTmyouhcP6CxhuvvPlA3gMvnVW9DL/oQ8E2jm",
+    "createdAt": "2026-10-03T06:26:28.452Z"
+  }
+]

@@ -1,0 +1,121 @@
+[
+  {
+    "id": "f6321824-82c4-4b72-bfe1-6466b19d7695",
+    "name": "Dr. James Wilson",
+    "specialty": "Cardiology",
+    "photoUrl": "/src/assets/images/doctor_cardiology_1791003731426.jpg",
+    "experience": 15,
+    "qualifications": [
+      "MD - Cardiology",
+      "FACC"
+    ],
+    "fees": 150,
+    "rating": 4.9,
+    "availability": [
+      "Monday",
+      "Wednesday",
+      "Friday"
+    ],
+    "about": "Dr. James Wilson is a world-renowned cardiologist with over 15 years of experience in treating complex heart conditions. He is dedicated to providing personalized care to his patients."
+  },
+  {
+    "id": "5c396bb6-9807-4552-beb2-79675ebf120e",
+    "name": "Dr. Sarah Chen",
+    "specialty": "Dermatology",
+    "photoUrl": "/src/assets/images/doctor_dermatology_1791003744157.jpg",
+    "experience": 10,
+    "qualifications": [
+      "MD - Dermatology",
+      "Board Certified"
+    ],
+    "fees": 120,
+    "rating": 4.8,
+    "availability": [
+      "Tuesday",
+      "Thursday",
+      "Saturday"
+    ],
+    "about": "Dr. Sarah Chen specializes in medical and cosmetic dermatology. She believes in a holistic approach to skin health and uses the latest technology to achieve the best results."
+  },
+  {
+    "id": "6a1bfe06-c2a8-4afe-b6ee-1893c1fe2884",
+    "name": "Dr. Michael Brown",
+    "specialty": "General Medicine",
+    "photoUrl": "/src/assets/images/doctor_general_1791003778534.jpg",
+    "experience": 20,
+    "qualifications": [
+      "MD - Internal Medicine"
+    ],
+    "fees": 80,
+    "rating": 4.6,
+    "availability": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday"
+    ],
+    "about": "Dr. Michael Brown has over 20 years of experience in general medicine. He provides high-quality primary care and emphasizes preventive medicine."
+  },
+  {
+    "id": "33333333-3333-4333-a333-333333333333",
+    "name": "Dr. Robert Miller",
+    "specialty": "Pediatrics",
+    "photoUrl": "/src/assets/images/doctor_pediatrics_1791003754715.jpg",
+    "experience": 12,
+    "qualifications": [
+      "MD - Pediatrics",
+      "American Board of Pediatrics"
+    ],
+    "fees": 100,
+    "rating": 4.7,
+    "availability": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday"
+    ],
+    "about": "Dr. Robert Miller is passionate about child healthcare and development. He provides comprehensive care for children from infancy through adolescence."
+  },
+  {
+    "id": "44444444-4444-4444-a444-444444444444",
+    "name": "Dr. Elena Rodriguez",
+    "specialty": "Neurology",
+    "photoUrl": "/src/assets/images/doctor_neurology_1791003767614.jpg",
+    "experience": 18,
+    "qualifications": [
+      "MD - Neurology",
+      "PhD in Neurosciences"
+    ],
+    "fees": 200,
+    "rating": 4.9,
+    "availability": [
+      "Monday",
+      "Wednesday",
+      "Thursday"
+    ],
+    "about": "Dr. Elena Rodriguez is an expert in neurological disorders. Her research and clinical practice focus on innovative treatments for migraine and epilepsy."
+  },
+  {
+    "id": "bca49a91-69cf-457f-a85d-10fad17655f6",
+    "name": "Dr. Aditi Sharma",
+    "specialty": "Cardiology",
+    "photoUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    "experience": 12,
+    "qualifications": [
+      "MBBS",
+      "MD - Cardiology",
+      "FACC"
+    ],
+    "fees": 160,
+    "rating": 4.9,
+    "availability": [
+      "Monday",
+      "Wednesday",
+      "Friday"
+    ],
+    "about": "Dr. Aditi Sharma is an accomplished cardiologist specializing in non-invasive cardiac imaging."
+  }
+]
