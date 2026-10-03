@@ -774,30 +774,36 @@ app.get('/api/admin/stats', authenticate, (req: any, res) => {
 });
 
 // Serve static assets or mount Vite middleware
-if (process.env.NODE_ENV === 'production') {
+if (process.env.VERCEL) {
+  // On Vercel, static files are handled by vercel.json rewrites.
+  // This Express app should only handle /api routes.
+} else if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'dist')));
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
   });
 } else {
-  const { createServer: createViteServer } = await import('vite');
-  const vite = await createViteServer({
-    server: { middlewareMode: true },
-    appType: 'custom',
-  });
-  app.use(vite.middlewares);
+  // Use a completely dynamic import for vite to avoid bundling it in production
+  import('vite').then(async (viteModule) => {
+    const vite = await viteModule.createServer({
+      server: { middlewareMode: true },
+      appType: 'custom',
+    });
+    app.use(vite.middlewares);
 
-  // For non-API routes in dev, serve index.html via Vite
-  app.get('*', async (req, res, next) => {
-    if (req.url.startsWith('/api')) return next();
-    try {
-      const html = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
-      const transformedHtml = await vite.transformIndexHtml(req.url, html);
-      res.status(200).set({ 'Content-Type': 'text/html' }).end(transformedHtml);
-    } catch (e) {
-      vite.ssrFixStacktrace(e as Error);
-      next(e);
-    }
+    app.get('*', async (req, res, next) => {
+      if (req.url.startsWith('/api')) return next();
+      try {
+        const html = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
+        const transformedHtml = await vite.transformIndexHtml(req.url, html);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(transformedHtml);
+      } catch (e) {
+        vite.ssrFixStacktrace(e as Error);
+        next(e);
+      }
+    });
+  }).catch(err => {
+    console.error('Failed to load Vite in dev mode:', err);
   });
 }
 
